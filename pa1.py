@@ -21,34 +21,51 @@ def fcfs_scheduler(processes, run_for):
     processes_iter = iter(processes)
     next_process = next(processes_iter, None)
     current_process = None
+    wait_turnaround_response = []  # List to store wait, turnaround, and response times
 
     while current_time < run_for:
         # Add newly arrived processes to the queue
         while next_process and next_process['arrival_time'] <= current_time:
             process_queue.append(next_process)
-            log.append(f"Time {current_time} : {next_process['process_id']} arrived")
+            log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
             next_process = next(processes_iter, None)
 
         if not current_process and process_queue:
             # Select the next process in the queue if there is no current process
             current_process = process_queue.pop(0)
-            log.append(f"Time {current_time} : {current_process['process_id']} selected (burst {current_process['execution_time']})")
+            current_process['start_time'] = current_time
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['execution_time']})")
 
         if current_process:
             # Run the current process
             current_process['execution_time'] -= 1
             if current_process['execution_time'] == 0:
-                log.append(f"Time {current_time + 1} : {current_process['process_id']} finished")
+                current_process['end_time'] = current_time + 1
+                log.append(f"Time {current_time + 1: >3} : {current_process['process_id']} finished")
+
+                # Calculate wait, turnaround, and response times for the finished process
+                wait_time = current_process['start_time'] - current_process['arrival_time']
+                turnaround_time = current_process['end_time'] - current_process['arrival_time']
+                response_time = current_process['start_time'] - current_process['arrival_time']
+                wait_turnaround_response.append({
+                    'process_id': current_process['process_id'],
+                    'wait_time': wait_time,
+                    'turnaround_time': turnaround_time,
+                    'response_time': response_time
+                })
+
                 current_process = None
         else:
-            log.append(f"Time {current_time} : Idle")
+            log.append(f"Time {current_time: >3} : Idle")
 
         current_time += 1
 
-    log.sort(key=lambda x: (int(x.split()[1]), 'selected' in x, 'finished' in x, 'arrived' in x))
-    log.append(f"Finished at time {run_for}")
+    log.sort(key=lambda x: (int(x.split()[1]), 'Idle' in x, 'selected' in x, 'finished' in x, 'arrived' in x))
+    log.append(f"Finished at time {run_for: >3}")
+    wait_turnaround_response.sort(key=lambda x: x['process_id'])
 
-    return log
+    return log, wait_turnaround_response
+
 
 def read_input_file(file_path):
     with open(file_path, 'r') as file:
@@ -90,15 +107,24 @@ def main():
 
     try:
         input_data = read_input_file(input_file)
-        print(f" {input_data['processcount']} processes")
+        print(f"{input_data['processcount']: >3} processes")
 
         processes = [create_process(p['name'], p['arrival'], p['burst']) for p in input_data['processes']]
 
         if input_data['scheduler'].lower() == 'fcfs':
             print("\nUsing First-Come First-Served")
-            processes = fcfs_scheduler(processes, input_data['runfor'])
-            for entry in processes:
+            # Inside the main function
+            log, wait_turnaround_response = fcfs_scheduler(processes, input_data['runfor'])
+
+            # Print the log
+            for entry in log:
                 print(entry)
+
+            print()
+
+            # Print wait, turnaround, and response times for each process
+            for wt in wait_turnaround_response:
+                print(f"{wt['process_id']} wait {wt['wait_time']: >3} turnaround {wt['turnaround_time']: >3} response {wt['response_time']: >3}")
 
     except FileNotFoundError:
         print(f"Error: File '{input_file}' not found.")
