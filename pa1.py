@@ -36,7 +36,6 @@ def fcfs_scheduler(processes, run_for):
 
         if current_process:
             # Run the current process
-            log.append(f"Time {current_time} : {current_process['process_id']} running")
             current_process['execution_time'] -= 1
             if current_process['execution_time'] == 0:
                 log.append(f"Time {current_time + 1} : {current_process['process_id']} finished")
