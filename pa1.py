@@ -16,32 +16,37 @@ def create_process(process_id, arrival_time, execution_time):
 def fcfs_scheduler(processes, run_for):
     current_time = 0
     log = []
+    processes = sorted(processes, key=lambda x: x['arrival_time'])
+    process_queue = []
+    processes_iter = iter(processes)
+    next_process = next(processes_iter, None)
+    current_process = None
 
-    for process in sorted(processes, key=lambda x: x['arrival_time']):
-        if process['arrival_time'] > current_time:
-            for i in range(current_time, process['arrival_time']):
-                log.append(f"Time {i} : Idle")
-                current_time = i
-            current_time = process['arrival_time']
+    while current_time < run_for:
+        # Add newly arrived processes to the queue
+        while next_process and next_process['arrival_time'] <= current_time:
+            process_queue.append(next_process)
+            log.append(f"Time {current_time} : {next_process['process_id']} arrived")
+            next_process = next(processes_iter, None)
 
-        log.append(f"Time {current_time} : {process['process_id']} arrived")
-        process['start_time'] = current_time
-        process['end_time'] = current_time + process['execution_time']
-        process['response_time'] = process['start_time'] - process['arrival_time']
-        process['wait_time'] = current_time - process['arrival_time']  # Corrected wait time calculation
-        process['status'] = 'Completed'
-        log.append(f"Time {current_time} : {process['process_id']} selected (burst {process['execution_time']})")
-        log.append(f"Time {process['end_time']} : {process['process_id']} finished")
-        current_time = process['end_time']
+        if not current_process and process_queue:
+            # Select the next process in the queue if there is no current process
+            current_process = process_queue.pop(0)
+            log.append(f"Time {current_time} : {current_process['process_id']} selected (burst {current_process['execution_time']})")
 
-    for i in range(current_time, run_for):
-        log.append(f"Time {i} : Idle")
+        if current_process:
+            # Run the current process
+            log.append(f"Time {current_time} : {current_process['process_id']} running")
+            current_process['execution_time'] -= 1
+            if current_process['execution_time'] == 0:
+                log.append(f"Time {current_time + 1} : {current_process['process_id']} finished")
+                current_process = None
+        else:
+            log.append(f"Time {current_time} : Idle")
 
-    log.append(f"Finished at time {run_for}\n")
+        current_time += 1
 
-    for process in processes:
-        log.append(f"{process['process_id']} wait {process['wait_time']} turnaround {process['end_time'] - process['arrival_time']} response {process['response_time']}")
-
+    log.append(f"Finished at time {run_for}")
     return log
 
 def read_input_file(file_path):
