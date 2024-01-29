@@ -45,7 +45,9 @@ def fcfs_scheduler(processes, run_for):
 
         current_time += 1
 
+    log.sort(key=lambda x: (int(x.split()[1]), 'selected' in x, 'finished' in x, 'arrived' in x))
     log.append(f"Finished at time {run_for}")
+
     return log
 
 def read_input_file(file_path):
