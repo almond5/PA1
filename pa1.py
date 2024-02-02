@@ -1,4 +1,5 @@
 import sys
+import heapq
 
 def create_process(process_id, arrival_time, execution_time):
     return {
@@ -66,6 +67,72 @@ def fcfs_scheduler(processes, run_for):
 
     return log, wait_turnaround_response
 
+def sjf_preemptive_scheduler(processes, run_for):
+    current_time = 0
+    log = []
+    waiting_queue = []
+    processes.sort(key=lambda x: x['arrival_time'])
+    processes_iter = iter(processes)
+    next_process = next(processes_iter, None)
+    current_process = None
+    wait_turnaround_response = []
+
+    while current_time < run_for:
+        # Add newly arrived processes to the waiting queue
+        while next_process and next_process['arrival_time'] <= current_time:
+                heapq.heappush(waiting_queue, (next_process['remaining_time'], next_process['process_id'], next_process))
+                log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
+                next_process = next(processes_iter, None)
+
+        # Preempt if a new process has a shorter remaining time
+        if current_process and waiting_queue:
+                _, next_in_queue_id, next_in_queue = waiting_queue[0]  # Look at the process at the front of the queue
+                if next_in_queue['remaining_time'] < current_process['remaining_time']:
+                    heapq.heappop(waiting_queue)  # Pop the next process from the queue
+                    heapq.heappush(waiting_queue, (current_process['remaining_time'], current_process['process_id'], current_process))  # Put the current process back in the queue
+                    current_process = next_in_queue  # Preempt!
+                    log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']})")
+
+        if not current_process and waiting_queue:
+                # Select the next process in the queue if there is no current process
+                _, _, current_process = heapq.heappop(waiting_queue)
+                if current_process['start_time'] is None:
+                    current_process['start_time'] = current_time
+                log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']})")
+
+        if current_process:
+                # Run the current process
+                current_process['remaining_time'] -= 1
+                if current_process['start_time'] is None:
+                    current_process['start_time'] = current_time  # Initialize start time if not already set
+                
+                if current_process['remaining_time'] == 0:
+                    current_process['end_time'] = current_time + 1
+                    log.append(f"Time {current_time + 1: >3} : {current_process['process_id']} finished")
+                    
+                    # Calculate wait, turnaround, and response times
+                    wait_time = (current_process['start_time'] or current_time) - current_process['arrival_time']
+                    turnaround_time = current_process['end_time'] - current_process['arrival_time']
+                    response_time = (current_process['start_time'] or current_time) - current_process['arrival_time']
+                    wait_turnaround_response.append({
+                        'process_id': current_process['process_id'],
+                        'wait_time': wait_time,
+                        'turnaround_time': turnaround_time,
+                        'response_time': response_time
+                    })
+
+                    current_process = None
+                
+        else:
+            log.append(f"Time {current_time: >3} : Idle")
+
+        current_time += 1
+
+    log.sort(key=lambda x: (int(x.split()[1]), 'Idle' in x, 'selected' in x, 'finished' in x, 'arrived' in x))
+    log.append(f"Finished at time {run_for: >3}")
+    wait_turnaround_response.sort(key=lambda x: x['process_id'])
+
+    return log, wait_turnaround_response
 
 def read_input_file(file_path):
     with open(file_path, 'r') as file:
@@ -115,6 +182,21 @@ def main():
             print("\nUsing First-Come First-Served")
             # Inside the main function
             log, wait_turnaround_response = fcfs_scheduler(processes, input_data['runfor'])
+
+            # Print the log
+            for entry in log:
+                print(entry)
+
+            print()
+
+            # Print wait, turnaround, and response times for each process
+            for wt in wait_turnaround_response:
+                print(f"{wt['process_id']} wait {wt['wait_time']: >3} turnaround {wt['turnaround_time']: >3} response {wt['response_time']: >3}")
+        
+        elif input_data['scheduler'].lower() == 'sjf':
+            print("\nUsing Shortest Job First (Preemptive)")
+            # Inside the main function
+            log, wait_turnaround_response = sjf_preemptive_scheduler(processes, input_data['runfor'])
 
             # Print the log
             for entry in log:
