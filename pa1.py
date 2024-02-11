@@ -80,49 +80,44 @@ def sjf_preemptive_scheduler(processes, run_for):
     while current_time < run_for:
         # Add newly arrived processes to the waiting queue
         while next_process and next_process['arrival_time'] <= current_time:
-                heapq.heappush(waiting_queue, (next_process['remaining_time'], next_process['process_id'], next_process))
-                log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
-                next_process = next(processes_iter, None)
+            heapq.heappush(waiting_queue, (next_process['remaining_time'], next_process['process_id'], next_process))
+            log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
+            next_process = next(processes_iter, None)
 
-        # Preempt if a new process has a shorter remaining time
+        # Check for preemption
         if current_process and waiting_queue:
-                _, next_in_queue_id, next_in_queue = waiting_queue[0]  # Look at the process at the front of the queue
-                if next_in_queue['remaining_time'] < current_process['remaining_time']:
-                    heapq.heappop(waiting_queue)  # Pop the next process from the queue
-                    heapq.heappush(waiting_queue, (current_process['remaining_time'], current_process['process_id'], current_process))  # Put the current process back in the queue
-                    current_process = next_in_queue  # Preempt!
-                    log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
-
-        if not current_process and waiting_queue:
-                # Select the next process in the queue if there is no current process
-                _, _, current_process = heapq.heappop(waiting_queue)
+            _, next_in_queue_id, next_in_queue = waiting_queue[0]
+            if next_in_queue['remaining_time'] < current_process['remaining_time']:
+                heapq.heappop(waiting_queue)
+                heapq.heappush(waiting_queue, (current_process['remaining_time'], current_process['process_id'], current_process))
+                current_process = next_in_queue
                 if current_process['start_time'] is None:
                     current_process['start_time'] = current_time
                 log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
 
-        if current_process:
-                # Run the current process
-                current_process['remaining_time'] -= 1
-                if current_process['start_time'] is None:
-                    current_process['start_time'] = current_time  # Initialize start time if not already set
-                
-                if current_process['remaining_time'] == 0:
-                    current_process['end_time'] = current_time + 1
-                    log.append(f"Time {current_time + 1: >3} : {current_process['process_id']} finished")
-                    
-                    # Calculate wait, turnaround, and response times
-                    wait_time = (current_process['start_time'] or current_time) - current_process['arrival_time']
-                    turnaround_time = current_process['end_time'] - current_process['arrival_time']
-                    response_time = (current_process['start_time'] or current_time) - current_process['arrival_time']
-                    wait_turnaround_response.append({
-                        'process_id': current_process['process_id'],
-                        'wait_time': wait_time,
-                        'turnaround_time': turnaround_time,
-                        'response_time': response_time
-                    })
+        if not current_process and waiting_queue:
+            _, _, current_process = heapq.heappop(waiting_queue)
+            if current_process['start_time'] is None:
+                current_process['start_time'] = current_time
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
 
-                    current_process = None
-                
+        if current_process:
+            current_process['remaining_time'] -= 1
+            if current_process['remaining_time'] == 0:
+                current_process['end_time'] = current_time + 1
+                log.append(f"Time {current_time + 1: >3} : {current_process['process_id']} finished")
+
+                wait_time = current_process['end_time'] - current_process['arrival_time'] - current_process['execution_time']
+                turnaround_time = current_process['end_time'] - current_process['arrival_time']
+                response_time = current_process['start_time'] - current_process['arrival_time']
+                wait_turnaround_response.append({
+                    'process_id': current_process['process_id'],
+                    'wait_time': max(wait_time, 0),  # Ensure wait time is not negative
+                    'turnaround_time': turnaround_time,
+                    'response_time': response_time
+                })
+
+                current_process = None
         else:
             log.append(f"Time {current_time: >3} : Idle")
 
