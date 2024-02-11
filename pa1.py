@@ -35,7 +35,7 @@ def fcfs_scheduler(processes, run_for):
             # Select the next process in the queue if there is no current process
             current_process = process_queue.pop(0)
             current_process['start_time'] = current_time
-            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['execution_time']})")
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['execution_time']})")
 
         if current_process:
             # Run the current process
@@ -91,14 +91,14 @@ def sjf_preemptive_scheduler(processes, run_for):
                     heapq.heappop(waiting_queue)  # Pop the next process from the queue
                     heapq.heappush(waiting_queue, (current_process['remaining_time'], current_process['process_id'], current_process))  # Put the current process back in the queue
                     current_process = next_in_queue  # Preempt!
-                    log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']})")
+                    log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
 
         if not current_process and waiting_queue:
                 # Select the next process in the queue if there is no current process
                 _, _, current_process = heapq.heappop(waiting_queue)
                 if current_process['start_time'] is None:
                     current_process['start_time'] = current_time
-                log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']})")
+                log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
 
         if current_process:
                 # Run the current process
@@ -160,7 +160,7 @@ def read_input_file(file_path):
 
     input_data['processes'] = processes
     return input_data
-    
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python scheduler-gpt.py <input_file.in>")
@@ -174,39 +174,30 @@ def main():
 
     try:
         input_data = read_input_file(input_file)
-        print(f"{input_data['processcount']: >3} processes")
+        output_file = input_file.replace('.in', '.out')  # Output file name
 
-        processes = [create_process(p['name'], p['arrival'], p['burst']) for p in input_data['processes']]
+        with open(output_file, 'w') as f:
+            processes_count = input_data['processcount']
+            f.write(f" {processes_count: >2} processes\n")
 
-        if input_data['scheduler'].lower() == 'fcfs':
-            print("\nUsing First-Come First-Served")
-            # Inside the main function
-            log, wait_turnaround_response = fcfs_scheduler(processes, input_data['runfor'])
+            processes = [create_process(p['name'], p['arrival'], p['burst']) for p in input_data['processes']]
 
-            # Print the log
+            if input_data['scheduler'].lower() == 'fcfs':
+                f.write("Using First-Come First-Served\n")
+                log, wait_turnaround_response = fcfs_scheduler(processes, input_data['runfor'])
+            elif input_data['scheduler'].lower() == 'sjf':
+                f.write("Using preemptive Shortest Job First\n")
+                log, wait_turnaround_response = sjf_preemptive_scheduler(processes, input_data['runfor'])
+
+            # Writing log to file
             for entry in log:
-                print(entry)
+                f.write(entry + '\n')
 
-            print()
+            f.write('\n')
 
-            # Print wait, turnaround, and response times for each process
+            # Writing wait, turnaround, and response times for each process
             for wt in wait_turnaround_response:
-                print(f"{wt['process_id']} wait {wt['wait_time']: >3} turnaround {wt['turnaround_time']: >3} response {wt['response_time']: >3}")
-        
-        elif input_data['scheduler'].lower() == 'sjf':
-            print("\nUsing Shortest Job First (Preemptive)")
-            # Inside the main function
-            log, wait_turnaround_response = sjf_preemptive_scheduler(processes, input_data['runfor'])
-
-            # Print the log
-            for entry in log:
-                print(entry)
-
-            print()
-
-            # Print wait, turnaround, and response times for each process
-            for wt in wait_turnaround_response:
-                print(f"{wt['process_id']} wait {wt['wait_time']: >3} turnaround {wt['turnaround_time']: >3} response {wt['response_time']: >3}")
+                f.write(f"{wt['process_id']} wait {wt['wait_time']: >3} turnaround {wt['turnaround_time']: >3} response {wt['response_time']: >3}\n")
 
     except FileNotFoundError:
         print(f"Error: File '{input_file}' not found.")
@@ -225,3 +216,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main()
+
