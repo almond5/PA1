@@ -134,8 +134,6 @@ def round_robin_scheduler(processes, run_for, quantum):
     log = []
     wait_turnaround_response = []
 
-    log.append(f"Quantum   {quantum}\n")  # Log the quantum value
-
     remaining_processes = sorted(processes, key=lambda x: x['arrival_time'])
     waiting_queue = []
 
@@ -149,11 +147,13 @@ def round_robin_scheduler(processes, run_for, quantum):
             log.append(f"Time {current_time: >3} : Idle")
             current_time += 1
             continue
+        
+        print(current_time, process['process_id'])
 
         if process.get('start_time') is None:
             process['start_time'] = current_time
 
-        burst_time = min(process['remaining_time'], quantum)  # Use burst time instead of fixed quantum
+        burst_time = min(process['remaining_time'], quantum)  # Correctly limit burst time
         log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst   {process['remaining_time']})")
 
         current_time += burst_time
@@ -172,13 +172,15 @@ def round_robin_scheduler(processes, run_for, quantum):
                 'response_time': max(response_time, 0)
             })
         else:
+            # Adjusted the condition to only add processes that have arrived before or at the current time
             while remaining_processes and remaining_processes[0]['arrival_time'] <= current_time:
                 next_process = remaining_processes.pop(0)
                 waiting_queue.append(next_process)
+                print(f"Time {current_time: >3} : {next_process['process_id']} arrived")
                 log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
-
             waiting_queue.append(process)
 
+    log.insert(0, f"Quantum   {quantum}\n")  # Insert quantum value at the beginning of the log
     log.append(f"Finished at time {current_time: >3}")
     wait_turnaround_response.sort(key=lambda x: x['process_id'])
 
