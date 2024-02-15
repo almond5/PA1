@@ -154,7 +154,7 @@ def round_robin_scheduler(processes, run_for, quantum):
             process['start_time'] = current_time
 
         burst_time = min(process['remaining_time'], quantum)  # Use burst time instead of fixed quantum
-        log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst   {burst_time})")
+        log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst   {process['remaining_time']})")
 
         current_time += burst_time
         process['remaining_time'] -= burst_time
@@ -179,7 +179,8 @@ def round_robin_scheduler(processes, run_for, quantum):
 
             waiting_queue.append(process)
 
-    log.append(f"Finished at time {current_time: >3}\n")
+    log.append(f"Finished at time {current_time: >3}")
+    wait_turnaround_response.sort(key=lambda x: x['process_id'])
 
     return log, wait_turnaround_response
 
