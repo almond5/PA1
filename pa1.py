@@ -129,6 +129,60 @@ def sjf_preemptive_scheduler(processes, run_for):
 
     return log, wait_turnaround_response
 
+def round_robin_scheduler(processes, run_for, quantum):
+    current_time = 0
+    log = []
+    wait_turnaround_response = []
+
+    log.append(f"Quantum   {quantum}\n")  # Log the quantum value
+
+    remaining_processes = sorted(processes, key=lambda x: x['arrival_time'])
+    waiting_queue = []
+
+    while remaining_processes or waiting_queue or current_time < run_for:
+        if waiting_queue:
+            process = waiting_queue.pop(0)
+        elif remaining_processes:
+            process = remaining_processes.pop(0)
+            log.append(f"Time {current_time: >3} : {process['process_id']} arrived")
+        else:
+            log.append(f"Time {current_time: >3} : Idle")
+            current_time += 1
+            continue
+
+        if process.get('start_time') is None:
+            process['start_time'] = current_time
+
+        burst_time = min(process['remaining_time'], quantum)  # Use burst time instead of fixed quantum
+        log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst   {burst_time})")
+
+        current_time += burst_time
+        process['remaining_time'] -= burst_time
+
+        if process['remaining_time'] <= 0:
+            log.append(f"Time {current_time: >3} : {process['process_id']} finished")
+
+            wait_time = current_time - process['arrival_time'] - process['execution_time']
+            turnaround_time = current_time - process['arrival_time']
+            response_time = process['start_time'] - process['arrival_time']
+            wait_turnaround_response.append({
+                'process_id': process['process_id'],
+                'wait_time': max(wait_time, 0),
+                'turnaround_time': turnaround_time,
+                'response_time': max(response_time, 0)
+            })
+        else:
+            while remaining_processes and remaining_processes[0]['arrival_time'] <= current_time:
+                next_process = remaining_processes.pop(0)
+                waiting_queue.append(next_process)
+                log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
+
+            waiting_queue.append(process)
+
+    log.append(f"Finished at time {current_time: >3}\n")
+
+    return log, wait_turnaround_response
+
 def read_input_file(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -145,6 +199,8 @@ def read_input_file(file_path):
             input_data['runfor'] = int(tokens[1])
         elif tokens[0] == 'use':
             input_data['scheduler'] = tokens[1]
+        elif tokens[0] == 'quantum':
+            input_data['quantum'] = int(tokens[1])
         elif tokens[0] == 'process':
             process_info = {
                 'name': tokens[2],
@@ -154,7 +210,10 @@ def read_input_file(file_path):
             processes.append(process_info)
 
     input_data['processes'] = processes
+
+
     return input_data
+
 
 def main():
     if len(sys.argv) != 2:
@@ -176,6 +235,7 @@ def main():
             f.write(f" {processes_count: >2} processes\n")
 
             processes = [create_process(p['name'], p['arrival'], p['burst']) for p in input_data['processes']]
+            quantum = input_data.get('quantum', 1)  # Default quantum is 1 if not specified
 
             if input_data['scheduler'].lower() == 'fcfs':
                 f.write("Using First-Come First-Served\n")
@@ -183,6 +243,9 @@ def main():
             elif input_data['scheduler'].lower() == 'sjf':
                 f.write("Using preemptive Shortest Job First\n")
                 log, wait_turnaround_response = sjf_preemptive_scheduler(processes, input_data['runfor'])
+            elif input_data['scheduler'].lower() == 'rr':
+                f.write("Using Round Robin\n")
+                log, wait_turnaround_response = round_robin_scheduler(processes, input_data['runfor'], quantum)
 
             # Writing log to file
             for entry in log:
