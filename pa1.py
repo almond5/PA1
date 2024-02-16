@@ -35,7 +35,7 @@ def fcfs_scheduler(processes, run_for):
             # Select the next process in the queue if there is no current process
             current_process = process_queue.pop(0)
             current_process['start_time'] = current_time
-            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['execution_time']})")
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']:>3})")
 
         if current_process:
             # Run the current process
@@ -93,13 +93,13 @@ def sjf_preemptive_scheduler(processes, run_for):
                 current_process = next_in_queue
                 if current_process['start_time'] is None:
                     current_process['start_time'] = current_time
-                log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
+                log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']:>3})")
 
         if not current_process and waiting_queue:
             _, _, current_process = heapq.heappop(waiting_queue)
             if current_process['start_time'] is None:
                 current_process['start_time'] = current_time
-            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst   {current_process['remaining_time']})")
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']:>3})")
 
         if current_process:
             current_process['remaining_time'] -= 1
@@ -140,14 +140,11 @@ def round_robin_scheduler(processes, run_for, quantum):
     while remaining_processes or waiting_queue or current_time < run_for:
         if waiting_queue:
             process = waiting_queue.pop(0)
-            print(current_time, process['process_id'], '1')
         elif remaining_processes:
             process = remaining_processes.pop(0)
             log.append(f"Time {process['arrival_time']: >3} : {process['process_id']} arrived")
-            print(current_time, process['process_id'], '2')
         else:
             log.append(f"Time {current_time: >3} : Idle")
-            print(current_time, process['process_id'], '3')
             current_time += 1
             continue
         
@@ -155,11 +152,10 @@ def round_robin_scheduler(processes, run_for, quantum):
             process['start_time'] = current_time
 
         burst_time = min(process['remaining_time'], quantum)  # Correctly limit burst time
-        log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst   {process['remaining_time']})")
+        log.append(f"Time {current_time: >3} : {process['process_id']} selected (burst {process['remaining_time']:>3})")
 
         current_time += burst_time
         process['remaining_time'] -= burst_time
-        print(current_time, process['process_id'], '5')
 
         if process['remaining_time'] <= 0:
             log.append(f"Time {current_time: >3} : {process['process_id']} finished")
@@ -178,10 +174,10 @@ def round_robin_scheduler(processes, run_for, quantum):
             while remaining_processes and remaining_processes[0]['arrival_time'] <= current_time:
                 next_process = remaining_processes.pop(0)
                 waiting_queue.append(next_process)
-                print(f"Time {next_process['arrival_time']: >3} : {next_process['process_id']} arrived")
-                log.append(f"Time {next_process['arrival_time']: >3}: {next_process['process_id']} arrived")
+                log.append(f"Time {next_process['arrival_time']: >3} : {next_process['process_id']} arrived")
             waiting_queue.append(process)
 
+    log.sort(key=lambda x: (int(x.split()[1]), 'Idle' in x, 'selected' in x, 'finished' in x, 'arrived' in x))
     log.insert(0, f"Quantum   {quantum}\n")  # Insert quantum value at the beginning of the log
     log.append(f"Finished at time {current_time: >3}")
     wait_turnaround_response.sort(key=lambda x: x['process_id'])
@@ -216,9 +212,7 @@ def read_input_file(file_path):
 
     input_data['processes'] = processes
 
-
     return input_data
-
 
 def main():
     if len(sys.argv) != 2:
@@ -249,7 +243,7 @@ def main():
                 f.write("Using preemptive Shortest Job First\n")
                 log, wait_turnaround_response = sjf_preemptive_scheduler(processes, input_data['runfor'])
             elif input_data['scheduler'].lower() == 'rr':
-                f.write("Using Round Robin\n")
+                f.write("Using Round-Robin\n")
                 log, wait_turnaround_response = round_robin_scheduler(processes, input_data['runfor'], quantum)
 
             # Writing log to file
