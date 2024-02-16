@@ -187,6 +187,13 @@ def round_robin_scheduler(processes, run_for, quantum):
 
     return log, wait_turnaround_response
 
+def is_valid_integer(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
 def read_input_file(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -198,20 +205,40 @@ def read_input_file(file_path):
         tokens = line.strip().split()
 
         if tokens[0] == 'processcount':
-            input_data['processcount'] = int(tokens[1])
+            if len(tokens) > 1 and is_valid_integer(tokens[1]):
+                input_data['processcount'] = int(tokens[1])
+            else:
+                print("Error: Missing or invalid processcount parameter")
+                sys.exit(1)
         elif tokens[0] == 'runfor':
-            input_data['runfor'] = int(tokens[1])
+            if len(tokens) > 1 and is_valid_integer(tokens[1]):
+                input_data['runfor'] = int(tokens[1])
+            else: 
+                print("Error: Missing or invalid runfor parameter")
+                sys.exit(1)
         elif tokens[0] == 'use':
-            input_data['scheduler'] = tokens[1]
+            if len(tokens) > 1 and tokens[1] in ['fcfs', 'sjf', 'rr']:
+                input_data['scheduler'] = tokens[1]
+            else:
+                print("Error: Missing scheduler parameter")
+                sys.exit(1)
         elif tokens[0] == 'quantum':
-            input_data['quantum'] = int(tokens[1])
+            if len(tokens) > 1 and is_valid_integer(tokens[1]):
+                input_data['quantum'] = int(tokens[1])
+            else:
+                print("Error: Missing or invalid quantum parameter when use is 'rr'")
+                sys.exit(1)
         elif tokens[0] == 'process':
-            process_info = {
-                'name': tokens[2],
-                'arrival': int(tokens[4]),
-                'burst': int(tokens[6])
-            }
-            processes.append(process_info)
+            if len(tokens) >= 7 and is_valid_integer(tokens[4]) and is_valid_integer(tokens[6]):
+                process_info = {
+                    'name': tokens[2],
+                    'arrival': int(tokens[4]),
+                    'burst': int(tokens[6])
+                }
+                processes.append(process_info)
+            else:
+                print("Error: Missing or invalid parameter in process line")
+                sys.exit(1)
 
     input_data['processes'] = processes
 
