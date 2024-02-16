@@ -140,16 +140,17 @@ def round_robin_scheduler(processes, run_for, quantum):
     while remaining_processes or waiting_queue or current_time < run_for:
         if waiting_queue:
             process = waiting_queue.pop(0)
+            print(current_time, process['process_id'], '1')
         elif remaining_processes:
             process = remaining_processes.pop(0)
-            log.append(f"Time {current_time: >3} : {process['process_id']} arrived")
+            log.append(f"Time {process['arrival_time']: >3} : {process['process_id']} arrived")
+            print(current_time, process['process_id'], '2')
         else:
             log.append(f"Time {current_time: >3} : Idle")
+            print(current_time, process['process_id'], '3')
             current_time += 1
             continue
         
-        print(current_time, process['process_id'])
-
         if process.get('start_time') is None:
             process['start_time'] = current_time
 
@@ -158,6 +159,7 @@ def round_robin_scheduler(processes, run_for, quantum):
 
         current_time += burst_time
         process['remaining_time'] -= burst_time
+        print(current_time, process['process_id'], '5')
 
         if process['remaining_time'] <= 0:
             log.append(f"Time {current_time: >3} : {process['process_id']} finished")
@@ -176,8 +178,8 @@ def round_robin_scheduler(processes, run_for, quantum):
             while remaining_processes and remaining_processes[0]['arrival_time'] <= current_time:
                 next_process = remaining_processes.pop(0)
                 waiting_queue.append(next_process)
-                print(f"Time {current_time: >3} : {next_process['process_id']} arrived")
-                log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
+                print(f"Time {next_process['arrival_time']: >3} : {next_process['process_id']} arrived")
+                log.append(f"Time {next_process['arrival_time']: >3}: {next_process['process_id']} arrived")
             waiting_queue.append(process)
 
     log.insert(0, f"Quantum   {quantum}\n")  # Insert quantum value at the beginning of the log
