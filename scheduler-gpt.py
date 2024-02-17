@@ -273,7 +273,7 @@ def read_input_file(file_path):
             if len(tokens) > 1 and tokens[1] in ['fcfs', 'sjf', 'rr', 'cfs']:
                 input_data['scheduler'] = tokens[1]
             else:
-                print("Error: Missing scheduler parameter")
+                print("Error: Missing or invalid scheduler parameter")
                 sys.exit(1)
         elif tokens[0] == 'quantum':
             if len(tokens) > 1 and is_valid_integer(tokens[1]):
