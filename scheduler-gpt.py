@@ -4,6 +4,19 @@
 import sys
 import heapq
 
+# def create_process(process_id, arrival_time, execution_time):
+#     return {
+#         'process_id': process_id,
+#         'arrival_time': arrival_time,
+#         'execution_time': execution_time,
+#         'remaining_time': execution_time,
+#         'start_time': None,
+#         'end_time': None,
+#         'wait_time': 0,
+#         'response_time': None,
+#         'status': 'Ready'  # 'Ready', 'Running', or 'Completed'
+#     }
+
 def create_process(process_id, arrival_time, execution_time):
     return {
         'process_id': process_id,
@@ -16,6 +29,59 @@ def create_process(process_id, arrival_time, execution_time):
         'response_time': None,
         'status': 'Ready'  # 'Ready', 'Running', or 'Completed'
     }
+
+def cfs_scheduler(processes, run_for):
+    current_time = 0
+    log = []
+    processes = sorted(processes, key=lambda x: x['arrival_time'])
+    process_queue = []
+    processes_iter = iter(processes)
+    next_process = next(processes_iter, None)
+    current_process = None
+    wait_turnaround_response = []  # List to store wait, turnaround, and response times
+
+    while current_time < run_for:
+        # Add newly arrived processes to the queue
+        while next_process and next_process['arrival_time'] <= current_time:
+            heapq.heappush(process_queue, (next_process['arrival_time'], next_process))
+            log.append(f"Time {current_time: >3} : {next_process['process_id']} arrived")
+            next_process = next(processes_iter, None)
+
+        if not current_process and process_queue:
+            # Select the next process in the queue if there is no current process
+            _, current_process = heapq.heappop(process_queue)
+            current_process['start_time'] = current_time
+            log.append(f"Time {current_time: >3} : {current_process['process_id']} selected (burst {current_process['remaining_time']:>3})")
+
+        if current_process:
+            # Run the current process
+            current_process['execution_time'] -= 1
+            if current_process['execution_time'] == 0:
+                current_process['end_time'] = current_time + 1
+                log.append(f"Time {current_time + 1: >3} : {current_process['process_id']} finished")
+
+                # Calculate wait, turnaround, and response times for the finished process
+                wait_time = current_process['start_time'] - current_process['arrival_time']
+                turnaround_time = current_process['end_time'] - current_process['arrival_time']
+                response_time = current_process['start_time'] - current_process['arrival_time']
+                wait_turnaround_response.append({
+                    'process_id': current_process['process_id'],
+                    'wait_time': wait_time,
+                    'turnaround_time': turnaround_time,
+                    'response_time': response_time
+                })
+
+                current_process = None
+        else:
+            log.append(f"Time {current_time: >3} : Idle")
+
+        current_time += 1
+
+    log.sort(key=lambda x: (int(x.split()[1]), 'Idle' in x, 'selected' in x, 'finished' in x, 'arrived' in x))
+    log.append(f"Finished at time {run_for: >3}")
+    wait_turnaround_response.sort(key=lambda x: x['process_id'])
+
+    return log, wait_turnaround_response
 
 def fcfs_scheduler(processes, run_for):
     current_time = 0
@@ -217,7 +283,7 @@ def read_input_file(file_path):
                 print("Error: Missing or invalid runfor parameter")
                 sys.exit(1)
         elif tokens[0] == 'use':
-            if len(tokens) > 1 and tokens[1] in ['fcfs', 'sjf', 'rr']:
+            if len(tokens) > 1 and tokens[1] in ['fcfs', 'sjf', 'rr', 'cfs']:
                 input_data['scheduler'] = tokens[1]
             else:
                 print("Error: Missing scheduler parameter")
@@ -275,6 +341,9 @@ def main():
             elif input_data['scheduler'].lower() == 'rr':
                 f.write("Using Round-Robin\n")
                 log, wait_turnaround_response = round_robin_scheduler(processes, input_data['runfor'], quantum)
+            elif input_data['scheduler'].lower() == 'cfs':
+                f.write("Using CFS\n")
+                log, wait_turnaround_response = cfs_scheduler(processes, input_data['runfor'])
 
             # Writing log to file
             for entry in log:
