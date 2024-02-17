@@ -1,0 +1,8 @@
+processcount 4      # Read 4 processes
+runfor 20           # Run for 20 time units
+use cfs             # Use the Completely Fair Scheduler
+process name P1 arrival 0 burst 5 nice 0
+process name P2 arrival 1 burst 7 nice 0
+process name P3 arrival 2 burst 4 nice 0
+process name P4 arrival 3 burst 6 nice 0
+end
