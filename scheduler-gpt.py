@@ -4,19 +4,6 @@
 import sys
 import heapq
 
-# def create_process(process_id, arrival_time, execution_time):
-#     return {
-#         'process_id': process_id,
-#         'arrival_time': arrival_time,
-#         'execution_time': execution_time,
-#         'remaining_time': execution_time,
-#         'start_time': None,
-#         'end_time': None,
-#         'wait_time': 0,
-#         'response_time': None,
-#         'status': 'Ready'  # 'Ready', 'Running', or 'Completed'
-#     }
-
 def create_process(process_id, arrival_time, execution_time):
     return {
         'process_id': process_id,
