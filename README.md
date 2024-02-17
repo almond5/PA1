@@ -3,4 +3,4 @@
 - Input/Output - Hemant
 - FIFO - Adrian
 - SJF David
-- Round Robin - Isti
+- Round Robin - Istiaqul
